@@ -14,6 +14,7 @@ php7.4-intl,
 php7.4-json,
 php7.4-mbstring,
 php7.4-mysqli,
+php7.4-memcache,
 php7.4-opcache,
 php7.4-readline**
 
