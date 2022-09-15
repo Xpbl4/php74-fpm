@@ -10,6 +10,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y --no-install-recommends install \
     cron \
     unzip \
+    git-core \
     ghostscript \
     php7.4-mysqli \
     php7.4-intl \
