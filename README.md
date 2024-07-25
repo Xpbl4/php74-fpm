@@ -19,7 +19,7 @@ php7.4-opcache,
 php7.4-readline**
 
 Extras:
-**Composer, Cron**
+**Composer, Cron, FFmpeg, GhostScript**
 
 *Crontab:* you can use `/etc/cron.d/crontab` for cron jobs.
 You can also direct the output of the individual cronjobs to their own logs for better readability, you will just need to append the output of date somewhere.

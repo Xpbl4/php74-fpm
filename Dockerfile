@@ -11,6 +11,8 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     cron \
     unzip \
     git-core \
+    ffmpeg \
+    imagemagick \
     ghostscript \
     php7.4-mysqli \
     php7.4-intl \
