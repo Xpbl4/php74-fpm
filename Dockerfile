@@ -12,6 +12,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     unzip \
     git-core \
     ffmpeg \
+    pdftk \
     imagemagick \
     ghostscript \
     php7.4-mysqli \
