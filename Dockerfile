@@ -1,38 +1,44 @@
-####################################
-# PHPDocker.io PHP 7.4 / FPM image #
-####################################
+FROM ubuntu:22.04
 
-FROM phpdockerio/php74-fpm
-
-# Install FPM
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
-    && apt-get -y --no-install-recommends install \
-    cron \
-    unzip \
-    git-core \
-    ffmpeg \
-    pdftk \
-    imagemagick \
-    ghostscript \
-    php7.4-mysqli \
-    php7.4-intl \
-    php7.4-gd \
-    php7.4-imagick \
-    php7.4-memcache \
-    python3 python3-pip \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        gnupg \
+        software-properties-common \
+    && LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        cron \
+        unzip \
+        git-core \
+        ffmpeg \
+        pdftk \
+        imagemagick \
+        ghostscript \
+        locales \
+        locales-all \
+        python3 \
+        python3-pip \
+        php7.4-fpm \
+        php7.4-cli \
+        php7.4-common \
+        php7.4-mysql \
+        php7.4-intl \
+        php7.4-gd \
+        php7.4-imagick \
+        php7.4-memcache \
+        php7.4-curl \
+        php7.4-mbstring \
+        php7.4-xml \
+        php7.4-zip \
     && python3 -m pip install --no-cache-dir pypdf==5.9.0 \
-    && apt-get install -y locales locales-all \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/*
 
-# PHP-FPM packages need a nudge to make them docker-friendly
 COPY overrides.conf /etc/php/7.4/fpm/pool.d/z-overrides.conf
-
-# PHP-FPM has really dirty logs, certainly not good for dockerising
-# The following startup script contains some magic to clean these up
 COPY php-fpm-startup /usr/bin/php-fpm
-CMD /usr/bin/php-fpm
 
-# Open up fcgi port
+CMD ["/usr/bin/php-fpm"]
+
 EXPOSE 9000
