@@ -20,11 +20,12 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     php7.4-gd \
     php7.4-imagick \
     php7.4-memcache \
+    python3 python3-pip \
+    && python3 -m pip install --no-cache-dir pypdf==5.9.0 \
     && apt-get install -y locales locales-all \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/*
 
-#    php-imagick \
 # PHP-FPM packages need a nudge to make them docker-friendly
 COPY overrides.conf /etc/php/7.4/fpm/pool.d/z-overrides.conf
 
