@@ -57,4 +57,4 @@ GitHub Actions (`.github/workflows/docker.yml`) lints both Dockerfiles and build
 * `xpbl4/php74-fpm:latest` and `:ubuntu-<sha>` from `Dockerfile`, amd64 only, as before;
 * `xpbl4/php74-fpm:alpine` and `:alpine-<sha>` from `Dockerfile.alpine`, for amd64 and arm64 (arm64 is built under QEMU and takes longer).
 
-The repository needs the `DOCKERHUB_TOKEN` secret (a Docker Hub access token); `DOCKERHUB_USERNAME` is optional and defaults to `xpbl4`.
+The repository needs the `DOCKERHUB_TOKEN` secret (a Docker Hub access token) and the `DOCKERHUB_USERNAME` variable (defaults to `xpbl4`).
