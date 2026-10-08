@@ -4,6 +4,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
+        curl \
         gnupg \
         software-properties-common \
     && LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php \
@@ -32,6 +33,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
         php7.4-mbstring \
         php7.4-xml \
         php7.4-zip \
+    && test -x /usr/bin/curl \
     && python3 -m pip install --no-cache-dir pypdf==5.9.0 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/*
