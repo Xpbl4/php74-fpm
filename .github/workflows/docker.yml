@@ -1,6 +1,8 @@
 name: Docker image
 
-# Pull requests build both images; master publishes them to Docker Hub.
+# Pull requests build the image; master publishes it to Docker Hub.
+# Tags: :alpine and :alpine-<sha>. :latest stays on the last Ubuntu build until the ASSE projects
+# have moved to asse/php74-fpm; then add type=raw,value=latest below.
 on:
   push:
     branches: [master]
@@ -11,31 +13,12 @@ env:
   IMAGE: xpbl4/php74-fpm
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Lint the Dockerfiles
-        run: docker run --rm -v "$PWD:/src" -w /src hadolint/hadolint:latest-debian hadolint Dockerfile Dockerfile.alpine
-
   image:
-    needs: lint
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Ubuntu image as before: amd64 only.
-          - variant: ubuntu
-            dockerfile: Dockerfile
-            platforms: linux/amd64
-            tag: latest
-          - variant: alpine
-            dockerfile: Dockerfile.alpine
-            platforms: linux/amd64,linux/arm64
-            tag: alpine
     steps:
       - uses: actions/checkout@v4
+      - name: Lint the Dockerfile
+        run: docker run --rm -v "$PWD:/src" -w /src hadolint/hadolint:latest-debian hadolint Dockerfile
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - id: meta
@@ -44,8 +27,8 @@ jobs:
           images: ${{ env.IMAGE }}
           flavor: latest=false
           tags: |
-            type=raw,value=${{ matrix.tag }}
-            type=sha,prefix=${{ matrix.variant }}-
+            type=raw,value=alpine
+            type=sha,prefix=alpine-
       # DOCKERHUB_USERNAME is a repository variable, the image namespace is the fallback.
       # Docker Hub IDs are lowercase, and stray whitespace in a pasted token breaks the auth header.
       - name: Log in to Docker Hub
@@ -59,10 +42,9 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ matrix.dockerfile }}
-          platforms: ${{ matrix.platforms }}
+          platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.variant }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.variant }}
+          cache-from: type=gha,scope=alpine
+          cache-to: type=gha,mode=max,scope=alpine
