@@ -1,8 +1,6 @@
 name: Docker image
 
-# Pull requests build the image; master publishes it to Docker Hub.
-# Tags: :alpine and :alpine-<sha>. :latest stays on the last Ubuntu build until the ASSE projects
-# have moved to asse/php74-fpm; then add type=raw,value=latest below.
+# Pull requests build the image; master publishes it to Docker Hub as :latest, :alpine and :alpine-<sha>.
 on:
   push:
     branches: [master]
@@ -27,6 +25,7 @@ jobs:
           images: ${{ env.IMAGE }}
           flavor: latest=false
           tags: |
+            type=raw,value=latest
             type=raw,value=alpine
             type=sha,prefix=alpine-
       # DOCKERHUB_USERNAME is a repository variable, the image namespace is the fallback.

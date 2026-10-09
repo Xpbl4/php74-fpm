@@ -1,7 +1,7 @@
 PHP 7.4 / FPM container image
 =============================================
 
-PHP 7.4 FPM on the official `php:7.4-fpm-alpine3.16` image, for amd64 and arm64: `xpbl4/php74-fpm:alpine`.
+PHP 7.4 FPM on the official `php:7.4-fpm-alpine3.16` image, for amd64 and arm64: `xpbl4/php74-fpm:alpine` (also `:latest`).
 
 PHP extensions:
 **apcu,
@@ -55,8 +55,8 @@ docker build -t xpbl4/php74-fpm:alpine .
 Publishing
 =============================================
 
-GitHub Actions (`.github/workflows/docker.yml`) lints the Dockerfile and builds the image for every pull request. A push to `master` publishes `xpbl4/php74-fpm:alpine` and `:alpine-<sha>` for amd64 and arm64 (arm64 is built under QEMU and takes longer).
+GitHub Actions (`.github/workflows/docker.yml`) lints the Dockerfile and builds the image for every pull request. A push to `master` publishes `xpbl4/php74-fpm:latest`, `:alpine` and `:alpine-<sha>` for amd64 and arm64 (arm64 is built under QEMU and takes longer).
 
-`xpbl4/php74-fpm:latest` is still the last Ubuntu build, which the ASSE projects pull. Once they run on `asse/php74-fpm`, `:latest` becomes the Alpine build.
+Until October 2026 `:latest` was the Ubuntu build; the last one is still available as `xpbl4/php74-fpm:ubuntu-d2a7fe8`.
 
 The repository needs the `DOCKERHUB_TOKEN` secret (a Docker Hub access token) and the `DOCKERHUB_USERNAME` variable (defaults to `xpbl4`).
