@@ -1,7 +1,9 @@
 PHP 7.4 / FPM container image
 =============================================
 
-PHP 7.4 FPM on the official `php:7.4-fpm-alpine3.16` image, for amd64 and arm64: `xpbl4/php74-fpm:alpine` (also `:latest`).
+PHP 7.4 FPM on Alpine 3.16, for amd64 and arm64: `xpbl4/php74-fpm:alpine` (also `:latest`).
+
+PHP 7.4 is past its end of life and the official `php:7.4-fpm-alpine3.16` image is no longer updated. The Dockerfile rebuilds it in its first stage from the docker-library sources of that image (`php/`, from docker-library/php at b9f1715) and applies the official PHP2Shell backport (CVE-2026-109618, CVE-2026-109619; php-src branch `PHP-7.4-CVE-2026-109618-109619`) to the verified PHP 7.4.33 sources. Session upload progress, one of the attack paths, is switched off in `conf.d/zz-php2shell.ini`.
 
 PHP extensions:
 **apcu,
@@ -55,7 +57,7 @@ docker build -t xpbl4/php74-fpm:alpine .
 Publishing
 =============================================
 
-GitHub Actions (`.github/workflows/docker.yml`) lints the Dockerfile and builds the image for every pull request. A push to `master` publishes `xpbl4/php74-fpm:latest`, `:alpine` and `:alpine-<sha>` for amd64 and arm64 (arm64 is built under QEMU and takes longer).
+GitHub Actions (`.github/workflows/docker.yml`) lints the Dockerfile and builds the image for every pull request. A push to `master` publishes `xpbl4/php74-fpm:latest`, `:alpine` and `:alpine-<sha>` for amd64 and arm64. Each platform builds on its own native runner, since the first stage compiles PHP, and a final job joins them under the tags.
 
 Until October 2026 `:latest` was the Ubuntu build; the last one is still available as `xpbl4/php74-fpm:ubuntu-d2a7fe8`.
 

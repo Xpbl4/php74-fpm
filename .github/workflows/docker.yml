@@ -1,6 +1,8 @@
 name: Docker image
 
 # Pull requests build the image; master publishes it to Docker Hub as :latest, :alpine and :alpine-<sha>.
+# The first stage compiles PHP, so each platform builds on its own native runner (no QEMU) and the
+# merge job joins the two images under the tags.
 on:
   push:
     branches: [master]
@@ -11,23 +13,31 @@ env:
   IMAGE: xpbl4/php74-fpm
 
 jobs:
-  image:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Lint the Dockerfile
         run: docker run --rm -v "$PWD:/src" -w /src hadolint/hadolint:latest-debian hadolint Dockerfile
-      - uses: docker/setup-qemu-action@v3
+
+  build:
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: arch
+        run: echo "name=${PLATFORM#linux/}" >> "$GITHUB_OUTPUT"
+        env:
+          PLATFORM: ${{ matrix.platform }}
       - uses: docker/setup-buildx-action@v3
-      - id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE }}
-          flavor: latest=false
-          tags: |
-            type=raw,value=latest
-            type=raw,value=alpine
-            type=sha,prefix=alpine-
       # DOCKERHUB_USERNAME is a repository variable, the image namespace is the fallback.
       # Docker Hub IDs are lowercase, and stray whitespace in a pasted token breaks the auth header.
       - name: Log in to Docker Hub
@@ -38,12 +48,64 @@ jobs:
         run: |
           username=$(printf '%s' "$DOCKERHUB_USERNAME" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
           printf '%s' "$DOCKERHUB_TOKEN" | tr -d '[:space:]' | docker login --username "$username" --password-stdin
-      - uses: docker/build-push-action@v6
+      - id: build
+        uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=alpine
-          cache-to: type=gha,mode=max,scope=alpine
+          platforms: ${{ matrix.platform }}
+          outputs: ${{ github.event_name == 'pull_request' && 'type=cacheonly' || format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', env.IMAGE) }}
+          cache-from: type=gha,scope=alpine-${{ steps.arch.outputs.name }}
+          cache-to: type=gha,mode=max,scope=alpine-${{ steps.arch.outputs.name }}
+      - name: Keep the digest for the merge job
+        if: github.event_name != 'pull_request'
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ steps.arch.outputs.name }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digest-*
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v3
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          flavor: latest=false
+          tags: |
+            type=raw,value=latest
+            type=raw,value=alpine
+            type=sha,prefix=alpine-
+      - name: Log in to Docker Hub
+        env:
+          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME || 'xpbl4' }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          username=$(printf '%s' "$DOCKERHUB_USERNAME" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+          printf '%s' "$DOCKERHUB_TOKEN" | tr -d '[:space:]' | docker login --username "$username" --password-stdin
+      - name: Publish the multi-platform image under the tags
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          args=()
+          while read -r tag; do [ -n "$tag" ] && args+=(--tag "$tag"); done <<< "$TAGS"
+          for digest in *; do args+=("$IMAGE@sha256:$digest"); done
+          docker buildx imagetools create "${args[@]}"
+      - name: Show the result
+        run: docker buildx imagetools inspect "$IMAGE:alpine"
