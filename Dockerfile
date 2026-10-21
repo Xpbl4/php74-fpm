@@ -278,17 +278,27 @@ COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /u
 # Then the Ubuntu paths that projects rely on: binaries, conf.d mounts, the FPM pool directory
 # and www-data with uid/gid 33, which owns the projects' state files.
 # Session upload progress, one of the PHP2Shell attack paths, is off: no project uses it.
-RUN install-php-extensions \
-        apcu \
-        apcu_bc \
+# The PECL modules are built from their release archives (the versions of the earlier image):
+# given a bare name, the installer asks the pecl.php.net REST API, which fails under load.
+# An archive keeps package.xml next to the source directory, the installer wants it inside.
+RUN mkdir /tmp/pecl \
+    && for pkg in apcu-5.1.28 apcu_bc-1.0.5 imagick-3.8.1 memcache-4.0.5.2; do \
+        curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -o "/tmp/pecl/$pkg.tgz" "https://pecl.php.net/get/$pkg.tgz" \
+        && tar -xzf "/tmp/pecl/$pkg.tgz" -C /tmp/pecl \
+        && mv /tmp/pecl/package.xml "/tmp/pecl/$pkg/" \
+        && rm "/tmp/pecl/$pkg.tgz" || exit 1; \
+    done \
+    && install-php-extensions \
+        /tmp/pecl/apcu-5.1.28 \
+        /tmp/pecl/apcu_bc-1.0.5 \
         calendar \
         exif \
         ffi \
         gd \
         gettext \
-        imagick \
+        /tmp/pecl/imagick-3.8.1 \
         intl \
-        memcache \
+        /tmp/pecl/memcache-4.0.5.2 \
         mysqli \
         opcache \
         pcntl \
@@ -300,7 +310,7 @@ RUN install-php-extensions \
         sysvshm \
         xsl \
         zip \
-    && rm /usr/local/bin/install-php-extensions \
+    && rm -r /usr/local/bin/install-php-extensions /tmp/pecl \
     && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && apk add --no-cache bash cronie imagemagick sed tzdata \
     && mkdir -p /etc/php/7.4/fpm/conf.d /etc/php/7.4/cli/conf.d /etc/php/7.4/fpm/pool.d \
